@@ -20,6 +20,8 @@ from configs.config import Config
 @click.option('--project_name', type=str, default='low_res_bird_img_classification')
 @click.option('--wandb_logging', type=bool, default=True)
 @click.option('--wandb_account_entity', type=str, default='hero981001')
+@click.option('--keep_train', type=bool, default=False)
+@click.option('--keep_train_model_file', type=str, default=None)
 @click.option('--seed', type=int, default=456)
 @click.option('--test_split_ratio', type=float, default=0.3)
 @click.option('--batch_size', type=int, default='64')
@@ -27,19 +29,21 @@ from configs.config import Config
 @click.option('--lr', type=float, default=0.0001)
 @click.option('--num_epochs', type=int, default=5)
 @click.option('--shuffle', type=bool, default=False)
-@click.option('--model_load_path', type=click.Path(exists=True), default=None)
+@click.option('--load_model', type=str, default=None)
 @click.option('--sample_submit_file_path', type=click.Path(), default = '../datas/sample_submission.csv')
 def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logging, wandb_account_entity, run_name, seed, test_split_ratio, batch_size,
-         img_resize_size, lr, num_epochs, shuffle, model_load_path, sample_submit_file_path):
+         img_resize_size, lr, num_epochs, shuffle, load_model, sample_submit_file_path, keep_train, keep_train_model_file):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(device)
     config = Config(locals().copy())
     seed_everything(config.settings['seed'])
 
 
     if mode=="train":
         log_path = exp_path + run_name + '/'
+        log_path = os.path.normpath(log_path) + '/'
+        
         if not os.path.exists(log_path):
+            assert keep_train is True, 'There is no trained model to resume!'
             os.makedirs(log_path)
 
         if wandb_logging is True:
@@ -50,12 +54,19 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
                        name=config.settings['run_name'])
             update_wandb_config(wandb, config)
         else:
+            wandb = None
             config.save_config(log_path+'config.json')
 
         label_encoder, train_df, val_df = label_preprocessing(config.settings['train_csv_path'], 
                                                               config.settings['test_split_ratio'])
-        with open(log_path + 'label_encoder.pkl', 'wb') as file:
-            pickle.dump(label_encoder, file)
+        
+        if keep_train:
+            with open(log_path+'label_encoder.pkl', 'rb') as file:
+                label_encoder = pickle.load(file)
+        else:
+            with open(log_path + 'label_encoder.pkl', 'wb') as file:
+                pickle.dump(label_encoder, file)
+
         train_loader = get_train_loader(train_df, 
                                         config.settings['img_resize_size'],
                                         config.settings['batch_size'],
@@ -81,14 +92,19 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
                             loss_func=loss_func,
                             num_epochs=config.settings['num_epochs'],
                             device=device,
-                            save_path= log_path+'model.pt',
+                            save_path= log_path,
                             scheduler=scheduler,
                             wandb=wandb)
 
-        best_model = Trainer.train()
+        keep_train_model_path = log_path + keep_train_model_file
+        best_model = Trainer.train(keep_train=keep_train,
+                                   keep_train_model_file=keep_train_model_path)
+
 
     elif mode=="inference":
         log_path = exp_path + run_name + '/'
+        log_path = os.path.normpath(log_path) + '/'
+
         with open(log_path+'label_encoder.pkl', 'rb') as file:
             label_encoder = pickle.load(file)
 
@@ -97,8 +113,9 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
                                       config.settings['batch_size'],
                                       config.settings['shuffle']
                                       )
-        
-        model = torch.jit.load(config.settings['model_load_path'],
+        if load_model is None:
+            ValueError("Model Path Error!")
+        model = torch.jit.load(log_path + config.settings['load_model'],
                                map_location=torch.device(device))
         
         preds = inference(model, test_loader, label_encoder, device)

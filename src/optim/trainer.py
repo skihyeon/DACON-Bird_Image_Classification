@@ -1,11 +1,14 @@
 import numpy as np
 import torch
 import copy
+import os
+
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 from tqdm import tqdm
+import re 
 
 class BaseTrainer:
     def __init__(self, model: nn.Module,
@@ -31,16 +34,18 @@ class BaseTrainer:
         self.model.to(device)
         self.wandb = wandb
 
-    def train(self):
+    def train(self, keep_train=False, keep_train_model_file=None):
+        start_epoch = 0
+        if keep_train:
+            start_epoch = self.load_model(keep_train_model_file)
         best_score = 0
         best_model = None
 
-        with tqdm(range(self.num_epochs), desc='Epochs') as pbar:
+        with tqdm(range(start_epoch, start_epoch + self.num_epochs), desc='Epochs') as pbar:
             for epoch in pbar:
                 self.model.train()
-                # train_loss = []
-                train_loss_sum = 0  # Initialize sum of losses for each epoch
-                num_batches = 0  # Count the number of batches processed
+                train_loss_sum = 0 
+                num_batches = 0 
                 for imgs, labels in tqdm(self.train_loader, desc="Iter"):
                     imgs, labels = imgs.float().to(self.device), labels.to(self.device)
                     labels = labels.long()
@@ -52,14 +57,19 @@ class BaseTrainer:
                     loss.backward()
                     self.optimizer.step()
 
-                    # train_loss.append(loss.item())
-                    train_loss_sum += loss.detach()  # Accumulate loss on GPU
+                    train_loss_sum += loss.detach() 
                     num_batches += 1
 
                 val_loss, val_score = self.validate()
-                # train_loss = np.mean(train_loss)
                 train_loss_avg = train_loss_sum / num_batches
                 pbar.set_postfix_str(f'Epoch [{epoch}], Train Loss: {train_loss_avg:.5f}, Val Loss: {val_loss:.5f}, Val F1 Score: {val_score:.5f}')
+
+                if epoch % 5 == 0:  
+                    filename = f"model_{epoch}.pt"
+                    save_path = f"{self.save_path}/{filename}"
+                    scripted_model = torch.jit.script(self.model)
+                    torch.jit.save(scripted_model, save_path)
+                    print(f"Epoch:{epoch} Model saved to {save_path}")
 
                 if self.wandb is not None:
                     self.wandb.log({'train/epoch':epoch, 
@@ -77,8 +87,8 @@ class BaseTrainer:
                     best_score = val_score
                     best_model = copy.deepcopy(self.model)
                     scripted_best_model = torch.jit.script(best_model)
-                    torch.jit.save(scripted_best_model, self.save_path)
-                    print(f"\nscore {best_score:.3f} model saved to {self.save_path}")
+                    torch.jit.save(scripted_best_model, f"{self.save_path}/best_model.pt")
+
 
         return best_model
 
@@ -103,3 +113,15 @@ class BaseTrainer:
         val_loss = np.mean(val_loss)
         val_score = f1_score(true_labels, preds, average='macro')
         return val_loss, val_score
+
+    def load_model(self, load_path=None):
+        if load_path:
+            if not os.path.exists(load_path):
+                raise ValueError(f"The provided filename {load_path} does not exist")
+            epoch = int(re.search(r"model_(\d+).pt", load_path).group(1))
+            self.model = torch.jit.load(str(load_path)).to(self.device)
+            print(f"Model loaded from {load_path}, Resuming from epoch {epoch+1}")
+            return epoch + 1
+        return 0
+    
+    

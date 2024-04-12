@@ -13,7 +13,7 @@ def inference(model: nn.Module,
     preds = []
     with torch.no_grad():
         with tqdm(iter(test_loader), desc='Inference') as pbar:
-            for imgs in iter(test_loader):
+            for imgs in pbar:
                 imgs = imgs.float().to(device)
                 pred = model(imgs)
                 preds += pred.argmax(1).detach().cpu().numpy().tolist()
