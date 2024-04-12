@@ -4,6 +4,7 @@ import os
 import pickle
 
 from networks.basemodel import BaseModel
+from networks.eff_l2 import l2Model
 from utils.utils import seed_everything, wandb_login, update_wandb_config
 from optim.trainer import BaseTrainer
 from optim.inference import inference, make_submit
@@ -25,7 +26,7 @@ from configs.config import Config
 @click.option('--seed', type=int, default=456)
 @click.option('--test_split_ratio', type=float, default=0.3)
 @click.option('--batch_size', type=int, default='64')
-@click.option('--img_resize_size', type=int, default='64')
+@click.option('--img_resize_size', type=int, default='224')
 @click.option('--lr', type=float, default=0.0001)
 @click.option('--num_epochs', type=int, default=5)
 @click.option('--shuffle', type=bool, default=False)
@@ -41,7 +42,7 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
 
     if mode=="train":
         if not os.path.exists(log_path):
-            assert keep_train is True, 'There is no trained model to resume!'
+            assert keep_train is False, 'There is no trained model to resume!'
             os.makedirs(log_path)
 
         if wandb_logging is True:
@@ -74,7 +75,7 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
                                     config.settings['shuffle'])
     
     
-        model = BaseModel(label_encoder).to(device)
+        model = l2Model(label_encoder).to(device)
         optimizer = torch.optim.Adam(params=model.parameters(), lr=config.settings['lr'])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8)
         loss_func = torch.nn.CrossEntropyLoss()
@@ -90,7 +91,8 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
                               scheduler=scheduler,
                               wandb=wandb)
 
-        keep_train_model_path = log_path + keep_train_model_file
+        
+        keep_train_model_path = log_path + keep_train_model_file if keep_train is True else None
         best_model = Trainer.train(keep_train, keep_train_model_path)
 
     elif mode=="inference":
