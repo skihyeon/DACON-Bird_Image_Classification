@@ -1,0 +1,10 @@
+pandas
+numpy
+opencv-python
+torch
+albumentations
+scikit-learn
+tqdm
+torchvision
+wandb
+Click
