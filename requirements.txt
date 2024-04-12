@@ -6,3 +6,5 @@ albumentations
 scikit-learn
 tqdm
 torchvision
+wandb
+Click

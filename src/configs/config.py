@@ -1,20 +1,22 @@
+import json
 
-class Config():
-    class general:
-        train_csv_path = "../datas/train.csv"
-        test_csv_path = '../datas/test.csv'
-        test_split_ratio = 0.3
-        resize_img_size = 64
-        
-    class train:
-        lr = 0.001
-        batch_size = 64
-        shuffle = False
-        num_epochs = 1
-        save_path = '../model_files/model.pt'
-    
-    class inference:
-        model_path = '../model_files/model.pt'
-        batch_size = 64
-        shuffle = False
-    pass
+class Config(object):
+    """Base class for experimental setting/configuration."""
+
+    def __init__(self, settings):
+        self.settings = settings
+
+    def load_config(self, import_json):
+        """Load settings dict from import_json (path/filename.json) JSON-file."""
+
+        with open(import_json, 'r') as fp:
+            settings = json.load(fp)
+
+        for key, value in settings.items():
+            self.settings[key] = value
+
+    def save_config(self, export_json):
+        """Save settings dict to export_json (path/filename.json) JSON-file."""
+
+        with open(export_json, 'w') as fp:
+            json.dump(self.settings, fp)

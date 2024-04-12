@@ -1,5 +1,6 @@
 from torch.utils.data import Dataset
 import cv2
+import os
 
 class BirdDataset(Dataset):
     def __init__(self, img_path_list, label_list, transforms=None):
@@ -11,6 +12,9 @@ class BirdDataset(Dataset):
         img_path = self.img_path_list[index]
         img_path = img_path.replace("./", "")
         img_path = '../datas/' + img_path
+        if self.is_running_in_colab():
+            img_path = os.getcwd() + '/' + img_path
+            img_path = os.path.normpath(img_path)
         img = cv2.imread(img_path)
 
         img = self.transforms(image=img)['image'] if self.transforms != None else img
@@ -22,3 +26,10 @@ class BirdDataset(Dataset):
             return img
     def __len__(self):
         return len(self.img_path_list)
+    
+    def is_running_in_colab(self):
+        try:
+            import google.colab
+            return True
+        except ImportError:
+            return False
