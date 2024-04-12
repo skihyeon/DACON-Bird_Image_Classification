@@ -62,7 +62,7 @@ class BaseTrainer:
 
                 val_loss, val_score = self.validate()
                 train_loss_avg = train_loss_sum / num_batches
-                pbar.set_postfix_str(f'Epoch [{epoch}], Train Loss: {train_loss_avg:.5f}, Val Loss: {val_loss:.5f}, Val F1 Score: {val_score:.5f}')
+                pbar.set_postfix_str(f'Epoch [{epoch}], Train Loss: {train_loss_avg:.3f}, Val Loss: {val_loss:.3f}, Val F1 Score: {val_score:.3f}')
 
                 if epoch % 5 == 0:  
                     filename = f"model_{epoch}.pt"

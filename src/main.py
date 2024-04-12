@@ -37,11 +37,9 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
     config = Config(locals().copy())
     seed_everything(config.settings['seed'])
 
+    log_path = os.path.normpath(exp_path + run_name + '/') + '/'
 
     if mode=="train":
-        log_path = exp_path + run_name + '/'
-        log_path = os.path.normpath(log_path) + '/'
-        
         if not os.path.exists(log_path):
             assert keep_train is True, 'There is no trained model to resume!'
             os.makedirs(log_path)
@@ -57,10 +55,9 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
             wandb = None
             config.save_config(log_path+'config.json')
 
-        label_encoder, train_df, val_df = label_preprocessing(config.settings['train_csv_path'], 
-                                                              config.settings['test_split_ratio'])
+        label_encoder, train_df, val_df = label_preprocessing(config.settings['train_csv_path'], config.settings['test_split_ratio'])
         
-        if keep_train:
+        if keep_train and os.path.exists(log_path+'label_encoder.pkl'):
             with open(log_path+'label_encoder.pkl', 'rb') as file:
                 label_encoder = pickle.load(file)
         else:
@@ -77,46 +74,36 @@ def main(mode, exp_path, train_csv_path, test_csv_path, project_name, wandb_logg
                                     config.settings['shuffle'])
     
     
-        model = BaseModel(label_encoder)
-        model.to(device)
-        print(f"Model is on {next(model.parameters()).device}")
-        optimizer = torch.optim.Adam(params=model.parameters(),
-                                     lr=config.settings['lr'])
+        model = BaseModel(label_encoder).to(device)
+        optimizer = torch.optim.Adam(params=model.parameters(), lr=config.settings['lr'])
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8)
         loss_func = torch.nn.CrossEntropyLoss()
 
-        Trainer = BaseTrainer(model,
-                            train_loader=train_loader,
-                            val_loader=val_loader,
-                            optimizer=optimizer,
-                            loss_func=loss_func,
-                            num_epochs=config.settings['num_epochs'],
-                            device=device,
-                            save_path= log_path,
-                            scheduler=scheduler,
-                            wandb=wandb)
+        Trainer = BaseTrainer(model=model,
+                              train_loader=train_loader,
+                              val_loader=val_loader,
+                              optimizer=optimizer,
+                              loss_func=loss_func,
+                              num_epochs=config.settings['num_epochs'],
+                              device=device,
+                              save_path= log_path,
+                              scheduler=scheduler,
+                              wandb=wandb)
 
         keep_train_model_path = log_path + keep_train_model_file
-        best_model = Trainer.train(keep_train=keep_train,
-                                   keep_train_model_file=keep_train_model_path)
-
+        best_model = Trainer.train(keep_train, keep_train_model_path)
 
     elif mode=="inference":
-        log_path = exp_path + run_name + '/'
-        log_path = os.path.normpath(log_path) + '/'
-
         with open(log_path+'label_encoder.pkl', 'rb') as file:
             label_encoder = pickle.load(file)
 
         test_loader = get_test_loader(config.settings['test_csv_path'],
                                       config.settings['img_resize_size'],
                                       config.settings['batch_size'],
-                                      config.settings['shuffle']
-                                      )
+                                      config.settings['shuffle'])                                    
         if load_model is None:
             ValueError("Model Path Error!")
-        model = torch.jit.load(log_path + config.settings['load_model'],
-                               map_location=torch.device(device))
+        model = torch.jit.load(log_path + config.settings['load_model'], map_location=torch.device(device))
         
         preds = inference(model, test_loader, label_encoder, device)
         
