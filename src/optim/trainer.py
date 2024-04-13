@@ -17,6 +17,7 @@ class BaseTrainer:
                  optimizer: Optimizer, 
                  loss_func: nn.Module,  
                  num_epochs: int,
+                 epochs_per_save: int,
                  device: str,
                  save_path: str,
                  scheduler = None,
@@ -28,6 +29,7 @@ class BaseTrainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.num_epochs = num_epochs
+        self.epochs_per_save = epochs_per_save
         self.device = device
         self.save_path = save_path
         self.loss_func = loss_func.to(device)
@@ -44,27 +46,36 @@ class BaseTrainer:
         with tqdm(range(start_epoch, start_epoch + self.num_epochs), desc='Epochs') as pbar:
             for epoch in pbar:
                 self.model.train()
-                train_loss_sum = 0 
-                num_batches = 0 
-                for imgs, labels in tqdm(self.train_loader, desc="Iter"):
-                    imgs, labels = imgs.float().to(self.device), labels.to(self.device)
-                    labels = labels.long()
+                train_loss_sum = 0
+                num_batches = 0
 
-                    self.optimizer.zero_grad()
-                    output = self.model(imgs)
-                    loss = self.loss_func(output, labels)
+                total_batches = len(self.train_loader)
+                update_interval = int(total_batches * 0.03)
 
-                    loss.backward()
-                    self.optimizer.step()
+                with tqdm(self.train_loader, desc="Iter") as batch_bar:
+                    for imgs, labels in batch_bar:
+                        imgs, labels = imgs.float().to(self.device), labels.to(self.device)
+                        labels = labels.long()
 
-                    train_loss_sum += loss.detach() 
-                    num_batches += 1
+                        self.optimizer.zero_grad()
+                        output = self.model(imgs)
+                        loss = self.loss_func(output, labels)
+
+                        loss.backward()
+                        self.optimizer.step()
+
+                        train_loss_sum += loss.item()
+                        num_batches += 1
+
+                        if num_batches % update_interval == 0 or num_batches == total_batches:
+                            current_loss_avg = train_loss_sum / num_batches
+                            batch_bar.set_postfix(loss=current_loss_avg)
 
                 val_loss, val_score = self.validate()
                 train_loss_avg = train_loss_sum / num_batches
                 pbar.set_postfix_str(f'Epoch [{epoch}], Train Loss: {train_loss_avg:.3f}, Val Loss: {val_loss:.3f}, Val F1 Score: {val_score:.3f}')
 
-                if epoch % 5 == 0:  
+                if epoch % self.epochs_per_save == 0:  
                     filename = f"model_{epoch}.pt"
                     save_path = f"{self.save_path}/{filename}"
                     scripted_model = torch.jit.script(self.model)
@@ -87,7 +98,7 @@ class BaseTrainer:
                     best_score = val_score
                     best_model = copy.deepcopy(self.model)
                     scripted_best_model = torch.jit.script(best_model)
-                    torch.jit.save(scripted_best_model, f"{self.save_path}/best_model.pt")
+                    torch.jit.save(scripted_best_model, f"{self.save_path}/best_model_ep{epoch}.pt")
 
 
         return best_model
@@ -119,7 +130,8 @@ class BaseTrainer:
             if not os.path.exists(load_path):
                 raise ValueError(f"The provided filename {load_path} does not exist")
             epoch = int(re.search(r"model_(\d+).pt", load_path).group(1))
-            self.model = torch.jit.load(str(load_path)).to(self.device)
+            model = torch.jit.load(load_path, map_location=self.device)
+            self.model.load_state_dict(model.state_dict())
             print(f"Model loaded from {load_path}, Resuming from epoch {epoch+1}")
             return epoch + 1
         return 0

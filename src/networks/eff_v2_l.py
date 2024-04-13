@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torchvision.models as models
 
-class l2Model(nn.Module):
+class eff_v2_l(nn.Module):
     def __init__(self, le):
         super().__init__()
         num_clasees = len(le.classes_)
