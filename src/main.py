@@ -10,8 +10,6 @@ from optim.inference import inference, make_submit
 from datasets.dataloader import label_preprocessing, get_train_loader, get_val_loader, get_test_loader
 from configs.config import Config
 
-
-
 class ModelFactory:
     @staticmethod
     def get_model(model_name, label_encoder):

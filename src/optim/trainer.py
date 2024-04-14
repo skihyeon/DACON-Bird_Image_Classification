@@ -84,7 +84,7 @@ class BaseTrainer:
 
                 if self.wandb is not None:
                     self.wandb.log({'train/epoch':epoch, 
-                                    'train/loss':train_loss_avg.item(), 
+                                    'train/loss':train_loss_avg, 
                                     'val/loss':val_loss, 
                                     'val/score':val_score,
                                     })
