@@ -39,10 +39,16 @@ def train_func(run_name, model_name, exp_path,
     config.save_config(log_path+'config.json')
     if wandb_logging is True:
         wandb = wandb_login()
-        wandb.init(project=config.settings['project_name'], 
-                   entity=config.settings['wandb_account_entity'], 
-                   reinit=True, 
-                   name=config.settings['run_name'])
+        if keep_train is True:
+            wandb.init(project=config.settings['project_name'], 
+                       entity=config.settings['wandb_account_entity'], 
+                       name=config.settings['run_name'],
+                       resume='must')
+        else:
+            wandb.init(project=config.settings['project_name'], 
+                       entity=config.settings['wandb_account_entity'], 
+                       reinit=True, 
+                       name=config.settings['run_name'])
         update_wandb_config(wandb, config)
     
     label_encoder, train_df, val_df = label_preprocessing(config.settings['train_csv_path'], config.settings['test_split_ratio'])
@@ -63,16 +69,16 @@ def train_func(run_name, model_name, exp_path,
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8)
     loss_func = torch.nn.CrossEntropyLoss()
     Trainer = BaseTrainer(model=model,
-                              train_loader=train_loader,
-                              val_loader=val_loader,
-                              optimizer=optimizer,
-                              loss_func=loss_func,
-                              num_epochs=config.settings['num_epochs'],
-                              epochs_per_save = epochs_per_save,
-                              device=device,
-                              save_path= log_path,
-                              scheduler=scheduler,
-                              wandb=wandb)
+                          train_loader=train_loader,
+                          val_loader=val_loader,
+                          optimizer=optimizer,
+                          loss_func=loss_func,
+                          num_epochs=config.settings['num_epochs'],
+                          epochs_per_save = epochs_per_save,
+                          device=device,
+                          save_path= log_path,
+                          scheduler=scheduler,
+                          wandb=wandb)
     keep_train_model_path = log_path + keep_train_model_file if keep_train is True else None
     best_model = Trainer.train(keep_train, keep_train_model_path)
 
