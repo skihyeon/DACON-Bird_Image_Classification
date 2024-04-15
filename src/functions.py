@@ -18,7 +18,7 @@ class ModelFactory:
         return model_class(label_encoder)
 
 
-def train(run_name, model_name, exp_path, 
+def train_func(run_name, model_name, exp_path, 
           project_name, seed, batch_size, 
           img_resize_size, shuffle, train_csv_path, 
           wandb_logging, wandb_account_entity, keep_train, keep_train_model_file, 
@@ -77,7 +77,7 @@ def train(run_name, model_name, exp_path,
     best_model = Trainer.train(keep_train, keep_train_model_path)
 
 
-def inference(run_name, model_name, exp_path, 
+def inference_func(run_name, exp_path, 
               project_name, seed, batch_size, 
               img_resize_size, shuffle, test_csv_path,
               load_model, sample_submit_file_path):
