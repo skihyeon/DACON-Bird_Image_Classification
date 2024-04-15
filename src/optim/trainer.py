@@ -49,9 +49,6 @@ class BaseTrainer:
                 train_loss_sum = 0
                 num_batches = 0
 
-                total_batches = len(self.train_loader)
-                update_interval = int(total_batches * 0.03)
-
                 with tqdm(self.train_loader, desc="Iter") as batch_bar:
                     for imgs, labels in batch_bar:
                         imgs, labels = imgs.float().to(self.device), labels.to(self.device)
@@ -67,9 +64,11 @@ class BaseTrainer:
                         train_loss_sum += loss.item()
                         num_batches += 1
 
-                        if num_batches % update_interval == 0 or num_batches == total_batches:
-                            current_loss_avg = train_loss_sum / num_batches
-                            batch_bar.set_postfix(loss=current_loss_avg)
+                        current_loss_avg = train_loss_sum / num_batches
+                        batch_bar.set_postfix(loss=current_loss_avg)
+
+                        self.wandb.log({'train/iter': current_loss_avg})
+                            
 
                 val_loss, val_score = self.validate()
                 train_loss_avg = train_loss_sum / num_batches
@@ -83,8 +82,7 @@ class BaseTrainer:
                     print(f"Epoch:{epoch} Model saved to {save_path}")
 
                 if self.wandb is not None:
-                    self.wandb.log({'train/epoch':epoch, 
-                                    'train/loss':train_loss_avg, 
+                    self.wandb.log({'train/loss':train_loss_avg, 
                                     'val/loss':val_loss, 
                                     'val/score':val_score,
                                     })
