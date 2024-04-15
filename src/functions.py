@@ -1,8 +1,8 @@
 import torch
-import click
 import os
 import pickle
 import importlib
+from sam import SAM
 
 from utils.utils import seed_everything, wandb_login, update_wandb_config
 from optim.trainer import BaseTrainer
@@ -59,8 +59,10 @@ def train(run_name, model_name, exp_path,
     val_loader = get_val_loader(val_df, config.settings['img_resize_size'],
                                 config.settings['batch_size'], config.settings['shuffle'])
     model = ModelFactory.get_model(model_name, label_encoder).to(device)
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=config.settings['lr'])
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8)
+    base_optimizer = torch.optim.Adam
+    optimizer = SAM(model.parameters(), base_optimizer, lr=0.1, momentum=0.9)
+
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer.base_optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8)
     loss_func = torch.nn.CrossEntropyLoss()
     Trainer = BaseTrainer(model=model,
                               train_loader=train_loader,
