@@ -54,12 +54,21 @@ class BaseTrainer:
                         imgs, labels = imgs.float().to(self.device), labels.to(self.device)
                         labels = labels.long()
 
-                        self.optimizer.zero_grad()
+                        # self.optimizer.zero_grad()
+                        # output = self.model(imgs)
+                        # loss = self.loss_func(output, labels)
+
+                        # loss.backward()
+                        # self.optimizer.step()
+
                         output = self.model(imgs)
                         loss = self.loss_func(output, labels)
-
                         loss.backward()
-                        self.optimizer.step()
+                        self.optimizer.first_step(zero_grad=True)
+
+                        output = self.model(imgs)
+                        self.loss_func(output, labels).backward()
+                        self.optimizer.second_step(zero_grad=True)
 
                         train_loss_sum += loss.item()
                         num_batches += 1
