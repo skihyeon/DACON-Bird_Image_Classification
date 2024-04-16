@@ -3,7 +3,7 @@ import os
 import pickle
 import importlib
 
-from utils.utils import seed_everything, wandb_login, update_wandb_config
+from utils.utils import seed_everything, wandb_login, update_wandb_config, resume_latest_run_log
 from optim.trainer import BaseTrainer
 from optim.inference import inference, make_submit
 from optim.sam import SAM
@@ -40,10 +40,11 @@ def train_func(run_name, model_name, exp_path,
     if wandb_logging is True:
         wandb = wandb_login()
         if keep_train is True:
-            wandb.init(project=config.settings['project_name'], 
-                       entity=config.settings['wandb_account_entity'], 
-                       name=config.settings['run_name'],
-                       resume='must')
+             resume_latest_run_log(wandb,
+                                   entity=config.settings['wandb_account_entity'],
+                                   project_name=config.settings['project_name'],
+                                   target_run_name=config.settings['run_name']
+                                   )
         else:
             wandb.init(project=config.settings['project_name'], 
                        entity=config.settings['wandb_account_entity'], 
