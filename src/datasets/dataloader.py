@@ -28,11 +28,11 @@ def get_train_loader(encoded_train_df, resize_img_size, batch_size, shuffle=Fals
                                          albu.RandomRotate90(p=1),
                                          albu.VerticalFlip(p=1),
                                          ], p=1),
-                             albu.OneOf([
-                                         albu.MotionBlur(p=1),
-                                         albu.OpticalDistortion(p=1),
-                                         albu.GaussNoise(p=1)
-                                         ], p=1),
+                            #  albu.OneOf([
+                            #              albu.MotionBlur(p=1),
+                            #              albu.OpticalDistortion(p=1),
+                            #              albu.GaussNoise(p=1)
+                            #              ], p=1),
                              ToTensorV2()
                             ])
     
