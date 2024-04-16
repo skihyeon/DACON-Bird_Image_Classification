@@ -7,7 +7,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import re 
 
 class BaseTrainer:
@@ -50,16 +50,9 @@ class BaseTrainer:
                 num_batches = 0
 
                 with tqdm(self.train_loader, desc="Iter") as batch_bar:
-                    for imgs, labels in batch_bar:
+                    for imgs, labels in self.train_loader:
                         imgs, labels = imgs.float().to(self.device), labels.to(self.device)
                         labels = labels.long()
-
-                        # self.optimizer.zero_grad()
-                        # output = self.model(imgs)
-                        # loss = self.loss_func(output, labels)
-
-                        # loss.backward()
-                        # self.optimizer.step()
 
                         output = self.model(imgs)
                         loss = self.loss_func(output, labels)
