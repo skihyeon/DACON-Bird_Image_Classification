@@ -7,7 +7,7 @@ def cli():
 
 @cli.command()
 @click.argument('run_name', type=str, default=None)
-@click.option('--model_name', type=click.Choice(['BaseModel', 'eff_v2_l','vit_b_16']))
+@click.option('--model_name', type=click.Choice(['BaseModel', 'eff_v2_l','eff_b7','vit_b_16']))
 @click.option('--exp_path', type=click.Path(exists=True), default='../exps/')
 @click.option('--project_name', type=str, default='low_res_bird_img_classification')
 @click.option('--seed', type=int, default=456)
