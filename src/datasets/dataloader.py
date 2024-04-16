@@ -37,7 +37,7 @@ def get_train_loader(encoded_train_df, resize_img_size, batch_size, shuffle=Fals
                             ])
     
     dataset = BirdDataset(encoded_train_df['img_path'].values, encoded_train_df['label'].values, transform)
-    loader = DataLoader(dataset, batch_size, shuffle=shuffle, pin_memory=True, num_workers=4)
+    loader = DataLoader(dataset, batch_size, shuffle=shuffle, pin_memory=True, num_workers=2)
     return loader
 
 def get_val_loader(encoded_val_df, resize_img_size, batch_size, shuffle=False):
@@ -48,7 +48,7 @@ def get_val_loader(encoded_val_df, resize_img_size, batch_size, shuffle=False):
                             ])
     
     dataset = BirdDataset(encoded_val_df['img_path'].values, encoded_val_df['label'].values, transform)
-    loader = DataLoader(dataset, batch_size, shuffle=shuffle, pin_memory=True, num_workers=4)
+    loader = DataLoader(dataset, batch_size, shuffle=shuffle, pin_memory=True, num_workers=2)
     return loader
 
 

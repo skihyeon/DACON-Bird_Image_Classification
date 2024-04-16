@@ -7,7 +7,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 import re 
 
 class BaseTrainer:
