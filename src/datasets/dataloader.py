@@ -23,7 +23,16 @@ def get_train_loader(encoded_train_df, resize_img_size, batch_size, shuffle=Fals
     transform = albu.Compose([
                              albu.Resize(resize_img_size, resize_img_size),
                              albu.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), max_pixel_value=255.0, p=1.0),
-                             albu.HorizontalFlip(),
+                             albu.OneOf([
+                                         albu.HorizontalFlip(p=1),
+                                         albu.RandomRotate90(p=1),
+                                         albu.VerticalFlip(p=1),
+                                         ], p=1),
+                             albu.OneOf([
+                                         albu.MotionBlur(p=1),
+                                         albu.OpticalDistortion(p=1),
+                                         albu.GaussNoise(p=1)
+                                         ], p=1),
                              ToTensorV2()
                             ])
     
