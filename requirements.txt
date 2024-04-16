@@ -8,3 +8,4 @@ tqdm
 torchvision
 wandb
 Click
+SAM
