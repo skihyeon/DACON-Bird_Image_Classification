@@ -87,7 +87,7 @@ def train_func(run_name, model_name, exp_path,
     best_model = Trainer.train(keep_train, keep_train_model_path)
 
 
-def inference_func(run_name, exp_path, 
+def inference_func(run_name, model_name, exp_path, 
               project_name, seed, batch_size, 
               img_resize_size, shuffle, test_csv_path,
               load_model, sample_submit_file_path):
@@ -105,9 +105,11 @@ def inference_func(run_name, exp_path,
                                   config.settings['shuffle']) 
     
     if load_model is None:
-                ValueError("Model Path Error!")
+        ValueError("Model Path Error!")
 
-    model = torch.jit.load(log_path + config.settings['load_model'], map_location=torch.device(device))
+    model = ModelFactory.get_model(model_name, label_encoder).to(device)
+    model.load_state_dict(torch.load(log_path + load_model))
+    model.eval()
     preds = inference(model, test_loader, label_encoder, device)
     if os.path.exists(sample_submit_file_path):
                 model_file_name = config.settings['load_model'].replace('.pt', "")

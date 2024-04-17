@@ -80,9 +80,8 @@ class BaseTrainer:
                 if epoch % self.epochs_per_save == 0:  
                     filename = f"model_{epoch}.pt"
                     save_path = f"{self.save_path}/{filename}"
-                    scripted_model = torch.jit.script(self.model)
-                    torch.jit.save(scripted_model, save_path)
-                    print(f"Epoch:{epoch} Model saved to {save_path}")
+                    torch.save(self.model.state_dict(), save_path)
+                    print(f"Epoch:{epoch} Model state saved to {save_path}")
 
                 if self.wandb is not None:
                     self.wandb.log({'train/loss':train_loss_avg, 
@@ -98,8 +97,7 @@ class BaseTrainer:
                 if best_score < val_score:
                     best_score = val_score
                     best_model = copy.deepcopy(self.model)
-                    scripted_best_model = torch.jit.script(best_model)
-                    torch.jit.save(scripted_best_model, f"{self.save_path}/best_model_ep{epoch}.pt")
+                    torch.save(self.model.state_dict(), f"{self.save_path}/best_model_ep{epoch}.pt")
 
 
         return best_model
@@ -108,6 +106,8 @@ class BaseTrainer:
         self.model.eval()
         val_loss = []
         preds, true_labels = [], []
+        num_batches = 0
+        val_loss_sum = 0
 
         with torch.no_grad():
             for imgs, labels in tqdm(self.val_loader, desc='Val'):
@@ -120,9 +120,14 @@ class BaseTrainer:
                 preds.extend(pred.argmax(1).detach().cpu().numpy().tolist())
                 true_labels.extend(labels.detach().cpu().numpy().tolist())
 
-                val_loss.append(loss.item())
+                val_loss_sum += loss.item()
+                num_batches += 1
 
-        val_loss = np.mean(val_loss)
+                current_loss_avg = val_loss_sum / num_batches
+
+                self.wandb.log({'val/iter': current_loss_avg})
+
+        val_loss = val_loss_sum/num_batches
         val_score = f1_score(true_labels, preds, average='macro')
         return val_loss, val_score
 

@@ -13,7 +13,6 @@ class BirdDataset(Dataset):
         img_path = img_path.replace("./", "")
         img_path = '../datas/' + img_path
         if self.is_running_in_colab():
-            print("Running in Colab!!!!")
             img_path = os.getcwd() + '/' + img_path
             img_path = os.path.normpath(img_path)
         img = cv2.imread(img_path)
