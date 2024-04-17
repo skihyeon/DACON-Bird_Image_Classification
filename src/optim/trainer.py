@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import copy
 import os
+import sys
 
 from torch import nn
 from torch.optim import Optimizer
@@ -49,7 +50,7 @@ class BaseTrainer:
                 train_loss_sum = 0
                 num_batches = 0
 
-                with tqdm(self.train_loader, desc="Iter") as batch_bar:
+                with tqdm(self.train_loader, desc="Iter", file=sys.stderr) as batch_bar:
                     for imgs, labels in self.train_loader:
                         imgs, labels = imgs.float().to(self.device), labels.to(self.device)
                         labels = labels.long()
