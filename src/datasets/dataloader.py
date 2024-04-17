@@ -61,5 +61,5 @@ def get_test_loader(test_csv_path, resize_img_size, batch_size, shuffle=False):
                             ])
     
     dataset = BirdDataset(df['img_path'].values, None, transform)
-    loader = DataLoader(dataset, batch_size, shuffle=shuffle,  pin_memory=True, num_workers=4)
+    loader = DataLoader(dataset, batch_size, shuffle=shuffle,  pin_memory=True, num_workers=0)
     return loader
