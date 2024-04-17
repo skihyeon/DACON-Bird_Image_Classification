@@ -136,8 +136,8 @@ class BaseTrainer:
             if not os.path.exists(load_path):
                 raise ValueError(f"The provided filename {load_path} does not exist")
             epoch = int(re.search(r"model_(\d+).pt", load_path).group(1))
-            model = torch.jit.load(load_path, map_location=self.device)
-            self.model.load_state_dict(model.state_dict())
+            state_dict = torch.load(load_path, map_location=self.device)  # 파일에서 상태 딕셔너리 로드
+            self.model.load_state_dict(state_dict)
             print(f"Model loaded from {load_path}, Resuming from epoch {epoch+1}")
             return epoch + 1
         return 0
