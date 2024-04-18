@@ -107,8 +107,10 @@ def inference_func(run_name, model_name, exp_path,
     if load_model is None:
         ValueError("Model Path Error!")
 
-    model = ModelFactory.get_model(model_name, label_encoder).to(device)
-    model.load_state_dict(torch.load(log_path + load_model))
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ModelFactory.get_model(model_name, label_encoder)
+    model.load_state_dict(torch.load(log_path + load_model, map_location='cpu'))
+    model.to(device)  # 모델 상태를 로드한 후 필요한 디바이스로 이동
     model.eval()
     preds = inference(model, test_loader, label_encoder, device)
     if os.path.exists(sample_submit_file_path):
