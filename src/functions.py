@@ -2,10 +2,8 @@ import torch
 import os
 import pickle
 import importlib
-from sam import SAM
 
-
-from utils.utils import seed_everything, wandb_login, update_wandb_config
+from utils.utils import seed_everything, wandb_login, update_wandb_config, resume_latest_run_log
 from optim.trainer import BaseTrainer
 from optim.inference import inference, make_submit
 from optim.sam import SAM
@@ -42,10 +40,11 @@ def train_func(run_name, model_name, exp_path,
     if wandb_logging is True:
         wandb = wandb_login()
         if keep_train is True:
-            wandb.init(project=config.settings['project_name'], 
-                       entity=config.settings['wandb_account_entity'], 
-                       name=config.settings['run_name'],
-                       resume='must')
+             resume_latest_run_log(wandb,
+                                   entity=config.settings['wandb_account_entity'],
+                                   project_name=config.settings['project_name'],
+                                   target_run_name=config.settings['run_name']
+                                   )
         else:
             wandb.init(project=config.settings['project_name'], 
                        entity=config.settings['wandb_account_entity'], 
@@ -68,7 +67,7 @@ def train_func(run_name, model_name, exp_path,
                                 config.settings['batch_size'], config.settings['shuffle'])
     model = ModelFactory.get_model(model_name, label_encoder).to(device)
     base_optimizer = torch.optim.Adam
-    optimizer = SAM(model.parameters(), base_optimizer, lr=0.1, momentum=0.9)
+    optimizer = SAM(model.parameters(), base_optimizer, lr=config.settings['lr'])
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer.base_optimizer, mode='max', factor=0.5, patience=2, threshold_mode='abs', min_lr=1e-8)
 
@@ -88,7 +87,7 @@ def train_func(run_name, model_name, exp_path,
     best_model = Trainer.train(keep_train, keep_train_model_path)
 
 
-def inference_func(run_name, exp_path, 
+def inference_func(run_name, model_name, exp_path, 
               project_name, seed, batch_size, 
               img_resize_size, shuffle, test_csv_path,
               load_model, sample_submit_file_path):
@@ -106,9 +105,13 @@ def inference_func(run_name, exp_path,
                                   config.settings['shuffle']) 
     
     if load_model is None:
-                ValueError("Model Path Error!")
+        ValueError("Model Path Error!")
 
-    model = torch.jit.load(log_path + config.settings['load_model'], map_location=torch.device(device))
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = ModelFactory.get_model(model_name, label_encoder)
+    model.load_state_dict(torch.load(log_path + load_model, map_location='cpu'))
+    model.to(device)  # 모델 상태를 로드한 후 필요한 디바이스로 이동
+    model.eval()
     preds = inference(model, test_loader, label_encoder, device)
     if os.path.exists(sample_submit_file_path):
                 model_file_name = config.settings['load_model'].replace('.pt', "")

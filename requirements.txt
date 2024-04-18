@@ -8,4 +8,4 @@ tqdm
 torchvision
 wandb
 Click
-SAM
+transformers

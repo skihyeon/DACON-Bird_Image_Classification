@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import pandas as pd
 from torch.utils.data import DataLoader
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 
 def inference(model: nn.Module, 
