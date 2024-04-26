@@ -5,7 +5,7 @@ class swin_v2(nn.Module):
     def __init__(self, le):
         super().__init__()
         num_classes = len(le.classes_)
-        self.backbone = Swinv2Model.from_pretrained("microsoft/swinv2-large-patch4-window12to16-192to256-22kto1k-ft")
+        self.backbone = Swinv2Model.from_pretrained("microsoft/swinv2-large-patch4-window12to24-192to384-22kto1k-ft")
         self.classifier = nn.Sequential(
                                          nn.Tanh(),
                                          nn.LazyLinear(num_classes))

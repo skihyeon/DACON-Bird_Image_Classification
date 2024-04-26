@@ -6,3 +6,6 @@
 /src/wandb
 src\__pycache__
 exp_albu.ipynb
+/prepare_data
+/results
+/checkpoints
